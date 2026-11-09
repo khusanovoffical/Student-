@@ -3,7 +3,6 @@ using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
 using System.Windows;
-using System.Windows.Input;
 
 namespace Student;
 
@@ -20,39 +19,23 @@ public partial class MainWindow : Window
         Directory.CreateDirectory(folder);
         _profilePath = Path.Combine(folder, "student-profile.json");
 
-        // This is a visible setup window. Once a student profile exists, reuse it
-        // rather than asking for the same name on every launch.
-        if (File.Exists(_profilePath))
-        {
-            try
-            {
-                var saved = JsonSerializer.Deserialize<StudentProfile>(File.ReadAllText(_profilePath));
-                if (saved is not null)
-                {
-                    FirstNameBox.Text = saved.FirstName;
-                    LastNameBox.Text = saved.LastName;
-                    Loaded += async (_, _) => await SubmitAsync();
-                }
-            }
-            catch (JsonException)
-            {
-                StatusText.Text = "Saqlangan profilni o‘qib bo‘lmadi. Ism-familiyani qayta kiriting.";
-            }
-        }
+        // Each app launch starts a fresh student-use session. Keep the device ID,
+        // but do not silently reuse the previous student's name.
+        StatusText.Text = "Iltimos, hozir kompyuterdan foydalanayotgan o‘quvchi ma’lumotlarini kiriting.";
     }
 
-    private async void LastNameBox_LostFocus(object sender, RoutedEventArgs e) => await SubmitAsync();
-    private async void LastNameBox_KeyDown(object sender, KeyEventArgs e)
-    {
-        if (e.Key == Key.Enter) { e.Handled = true; await SubmitAsync(); }
-    }
+    private async void SubmitButton_Click(object sender, RoutedEventArgs e) => await SubmitAsync();
 
     private async Task SubmitAsync()
     {
         if (_submitting) return;
         var firstName = FirstNameBox.Text.Trim();
         var lastName = LastNameBox.Text.Trim();
-        if (firstName.Length == 0 || lastName.Length == 0) return;
+        if (firstName.Length == 0 || lastName.Length == 0)
+        {
+            StatusText.Text = "Davom etish uchun ism va familiyani kiriting.";
+            return;
+        }
         if (firstName.Length > 60 || lastName.Length > 60)
         {
             StatusText.Text = "Ism va familiya 60 belgidan oshmasligi kerak.";
@@ -60,6 +43,7 @@ public partial class MainWindow : Window
         }
 
         _submitting = true;
+        SubmitButton.IsEnabled = false;
         StatusText.Text = "Maktab tizimiga ulanish…";
         try
         {
@@ -72,15 +56,13 @@ public partial class MainWindow : Window
                 deviceId = Guid.NewGuid().ToString("N");
 
             var profile = new StudentProfile(firstName, lastName, Environment.MachineName, deviceId, DateTimeOffset.UtcNow);
-            await File.WriteAllTextAsync(_profilePath,
-                JsonSerializer.Serialize(profile, new JsonSerializerOptions { WriteIndented = true }));
-
             var apiBase = Environment.GetEnvironmentVariable("SCHOOLCONTROL_API_URL")?.TrimEnd('/');
             if (string.IsNullOrWhiteSpace(apiBase))
                 apiBase = ReadServerUrl(folder);
 
             if (string.IsNullOrWhiteSpace(apiBase))
             {
+                await SaveProfileAsync(profile);
                 StatusText.Text = "Profil saqlandi. Server manzilini IT mutaxassisi sozlashi kerak.";
                 return;
             }
@@ -89,24 +71,40 @@ public partial class MainWindow : Window
             {
                 using var response = await Http.PostAsJsonAsync($"{apiBase}/api/students/register",
                     new { firstName, lastName, deviceId, deviceName = Environment.MachineName });
-                StatusText.Text = response.IsSuccessStatusCode
-                    ? "Maktab tizimiga ulandingiz. Bu oynani yopishingiz mumkin."
-                    : $"Profil saqlandi. Server javobi: {(int)response.StatusCode}";
+                if (response.IsSuccessStatusCode)
+                {
+                    await SaveProfileAsync(profile);
+                    StatusText.Text = "Maktab tizimiga ulandingiz. Bu oynani yopishingiz mumkin.";
+                }
+                else
+                {
+                    StatusText.Text = $"Server javobi: {(int)response.StatusCode}. Ma’lumot qayta yuborilishi kerak.";
+                }
             }
             catch (HttpRequestException)
             {
-                StatusText.Text = "Profil saqlandi. Maktab serveriga ulanib bo‘lmadi.";
+                StatusText.Text = "Maktab serveriga ulanib bo‘lmadi. Internet va server sozlamasini tekshiring.";
             }
             catch (TaskCanceledException)
             {
-                StatusText.Text = "Profil saqlandi. Server javob bermadi.";
+                StatusText.Text = "Server javob bermadi. Keyinroq qayta urinib ko‘ring.";
             }
         }
         catch (Exception)
         {
             StatusText.Text = "Ma’lumotni saqlab bo‘lmadi. Qayta urinib ko‘ring.";
         }
-        finally { _submitting = false; }
+        finally
+        {
+            _submitting = false;
+            SubmitButton.IsEnabled = true;
+        }
+    }
+
+    private async Task SaveProfileAsync(StudentProfile profile)
+    {
+        await File.WriteAllTextAsync(_profilePath,
+            JsonSerializer.Serialize(profile, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static string? ReadServerUrl(string folder)
