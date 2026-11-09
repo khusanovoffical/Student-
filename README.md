@@ -8,6 +8,7 @@ Windows 10/11 student client for SchoolControl.
 - Sends registration to the configured school server.
 - Stores the Windows computer name in the local profile for device setup support.
 - Shows clear status when the school server is not configured or unavailable.
+- Keeps the student workflow limited to entering a name and surname; there are no attendance or messaging screens.
 
 ## Server configuration
 IT staff should create this file on each managed student PC:
@@ -31,4 +32,4 @@ dotnet build -c Release
 ```
 
 ## Privacy
-The student client is visible and does not run hidden screen capture, stealth persistence, or covert remote-control code. Any future classroom screen-sharing function must be clearly indicated and governed by school policy.
+The student client is visible and does not run hidden screen capture, stealth persistence, or covert remote-control code. IT staff configure the school server connection on managed PCs. Any future classroom screen-sharing function must display a clear on-screen indicator, be limited to an authorized class session, and follow the school's disclosed policy. Attendance tracking and messaging are not part of this app.
