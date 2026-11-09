@@ -44,8 +44,8 @@
                     <TextBlock Text="Ism" Foreground="#DCE4FF" FontSize="13" Margin="0,0,0,8"/>
                     <TextBox x:Name="FirstNameBox" Height="48" Padding="13" FontSize="15" Background="#0D1426" Foreground="White" BorderBrush="#344463"/>
                     <TextBlock Text="Familiya" Foreground="#DCE4FF" FontSize="13" Margin="0,18,0,8"/>
-                    <TextBox x:Name="LastNameBox" Height="48" Padding="13" FontSize="15" Background="#0D1426" Foreground="White" BorderBrush="#344463"/>
-                    <Button Content="Kirish  →" Click="Enter_Click" Height="50" Margin="0,25,0,0" Background="#6C8CFF" Foreground="White" FontSize="15" FontWeight="SemiBold" BorderThickness="0"/>
+                    <TextBox x:Name="LastNameBox" Height="48" Padding="13" FontSize="15" Background="#0D1426" Foreground="White" BorderBrush="#344463" LostFocus="LastNameBox_LostFocus" KeyDown="LastNameBox_KeyDown"/>
+                    <TextBlock Text="Davom etish uchun familiya maydonidan chiqing." Foreground="#9AA8C7" FontSize="11" TextWrapping="Wrap" Margin="0,22,0,0"/>
                     <TextBlock x:Name="StatusText" TextWrapping="Wrap" TextAlignment="Center" Foreground="#FFD98A" Margin="0,15,0,0" FontSize="12"/>
                     <TextBlock Text="Ma’lumotlaringiz maktab tizimiga yuborish uchun saqlanadi." TextWrapping="Wrap" TextAlignment="Center" Foreground="#7888AA" FontSize="10" Margin="0,22,0,0"/>
                 </StackPanel>
