@@ -1,23 +1,55 @@
 <Window x:Class="Student.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="Student · xumo.dev" Height="620" Width="920" MinHeight="560" MinWidth="760"
+        Title="Student · xumo.dev" Height="720" Width="1120" MinHeight="650" MinWidth="900"
         WindowStartupLocation="CenterScreen" Background="{StaticResource PageBrush}" Foreground="#F4F6FF">
     <Grid>
-        <Border Width="460" Padding="34" CornerRadius="22" Background="{StaticResource PanelBrush}"
-                HorizontalAlignment="Center" VerticalAlignment="Center">
-            <StackPanel>
-                <TextBlock Text="SCHOOL CONTROL" Foreground="#8FA7FF" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center"/>
-                <TextBlock Text="Xush kelibsiz!" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,4"/>
-                <TextBlock Text="Davom etish uchun ism va familiyangizni kiriting." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,28"/>
-                <TextBlock Text="Ism" Foreground="#DCE4FF" Margin="0,0,0,7"/>
-                <TextBox x:Name="FirstNameBox" Height="46" Padding="12" FontSize="15" Background="#0D1426" Foreground="White" BorderBrush="#2B3857"/>
-                <TextBlock Text="Familiya" Foreground="#DCE4FF" Margin="0,18,0,7"/>
-                <TextBox x:Name="LastNameBox" Height="46" Padding="12" FontSize="15" Background="#0D1426" Foreground="White" BorderBrush="#2B3857"/>
-                <Button Content="Kirish" Click="Enter_Click" Height="48" Margin="0,26,0,0" Background="#6C8CFF" Foreground="White" FontSize="15" FontWeight="SemiBold" BorderThickness="0"/>
-                <TextBlock x:Name="StatusText" TextWrapping="Wrap" TextAlignment="Center" Foreground="#FFD98A" Margin="0,16,0,0"/>
-                <TextBlock Text="xumo.dev" Foreground="#65749A" FontSize="11" HorizontalAlignment="Center" Margin="0,28,0,0"/>
-            </StackPanel>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="1.05*"/><ColumnDefinition Width="0.95*"/></Grid.ColumnDefinitions>
+        <Border Grid.Column="0" Background="#10182A">
+            <Grid Margin="54">
+                <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="*"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+                <StackPanel Orientation="Horizontal">
+                    <Border Width="42" Height="42" CornerRadius="13" Background="#263B70">
+                        <TextBlock Text="SC" Foreground="White" FontSize="16" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="SchoolControl" FontSize="17" FontWeight="Bold"/>
+                        <TextBlock Text="xumo.dev" Foreground="#8FA7FF" FontSize="11"/>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel Grid.Row="1" VerticalAlignment="Center">
+                    <TextBlock Text="BILIM OLAMIGA" Foreground="#8FA7FF" FontSize="12" FontWeight="Bold" CharacterSpacing="130"/>
+                    <TextBlock Text="Har kuni yangi imkoniyat." FontSize="34" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,15,0,0"/>
+                    <TextBlock Text="Maktab platformasiga xush kelibsiz. O‘quv jarayoningiz shu yerdan boshlanadi." Foreground="{StaticResource MutedBrush}" FontSize="15" TextWrapping="Wrap" LineHeight="25" Margin="0,13,0,0"/>
+                    <Border Background="#192640" CornerRadius="16" Padding="17" Margin="0,30,0,0">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✦" Foreground="#42D6C5" FontSize="23" Margin="0,0,13,0"/>
+                            <StackPanel>
+                                <TextBlock Text="Bir platforma. Yagona maktab." FontWeight="SemiBold"/>
+                                <TextBlock Text="Sizning ta’lim yo‘lingiz uchun." Foreground="#9AA8C7" FontSize="12" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+                <TextBlock Grid.Row="2" Text="© xumo.dev  ·  SchoolControl" Foreground="#65749A" FontSize="11"/>
+            </Grid>
         </Border>
+        <Grid Grid.Column="1" Margin="48">
+            <Border Width="390" Padding="32" CornerRadius="22" Background="{StaticResource PanelBrush}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="#263653" BorderThickness="1">
+                <StackPanel>
+                    <TextBlock Text="O‘QUVCHI KIRISHI" Foreground="#8FA7FF" FontSize="11" FontWeight="Bold" CharacterSpacing="110"/>
+                    <TextBlock Text="Xush kelibsiz!" FontSize="29" FontWeight="SemiBold" Margin="0,12,0,5"/>
+                    <TextBlock Text="Davom etish uchun ma’lumotlaringizni kiriting." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,27"/>
+                    <TextBlock Text="Ism" Foreground="#DCE4FF" FontSize="13" Margin="0,0,0,8"/>
+                    <TextBox x:Name="FirstNameBox" Height="48" Padding="13" FontSize="15" Background="#0D1426" Foreground="White" BorderBrush="#344463"/>
+                    <TextBlock Text="Familiya" Foreground="#DCE4FF" FontSize="13" Margin="0,18,0,8"/>
+                    <TextBox x:Name="LastNameBox" Height="48" Padding="13" FontSize="15" Background="#0D1426" Foreground="White" BorderBrush="#344463"/>
+                    <Button Content="Kirish  →" Click="Enter_Click" Height="50" Margin="0,25,0,0" Background="#6C8CFF" Foreground="White" FontSize="15" FontWeight="SemiBold" BorderThickness="0"/>
+                    <TextBlock x:Name="StatusText" TextWrapping="Wrap" TextAlignment="Center" Foreground="#FFD98A" Margin="0,15,0,0" FontSize="12"/>
+                    <TextBlock Text="Ma’lumotlaringiz maktab tizimiga yuborish uchun saqlanadi." TextWrapping="Wrap" TextAlignment="Center" Foreground="#7888AA" FontSize="10" Margin="0,22,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>
