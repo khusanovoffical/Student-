@@ -1,15 +1,23 @@
 # Student · xumo.dev
 
-A transparent Windows student client for the SchoolControl project.
+A transparent Windows student client for SchoolControl.
 
 ## Current foundation
-- Minimal sign-in screen containing only **Ism**, **Familiya**, and **Kirish**.
-- Validates required fields and length.
-- Saves the entered profile locally to `%LOCALAPPDATA%\SchoolControl\student-profile.json`.
-- Clearly tells the student that server synchronization is not yet configured.
+- Button-free student entry screen: only **Ism** and **Familiya** fields.
+- When the student leaves the surname field, the app validates and saves the profile automatically; Enter also submits.
+- Saves a local copy to `%LOCALAPPDATA%\SchoolControl\student-profile.json`.
+- Sends first name and last name to the SchoolControl API at `http://localhost:5080`.
+- Set `SCHOOLCONTROL_API_URL` to override the API base URL.
+- If the server is unavailable, the local profile remains saved and the app displays a clear status.
 
-## Next stage
-Connect this client to the authenticated school server so successful sign-in can create an attendance event and show the student's name in TeacherControl.
+## Run with the local API
+Start the API from the `Server` folder in the TeacherControl repository:
+
+```powershell
+dotnet run
+```
+
+Then run this Student desktop app. The API stores only the submitted name, surname, generated ID and registration timestamp.
 
 ## Privacy
 The app does not run hidden monitoring, collect screenshots, or prevent a device owner from closing/uninstalling it. Any future managed-device features must be disclosed, authorized by the school, and auditable.
