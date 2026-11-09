@@ -18,7 +18,7 @@
                     </StackPanel>
                 </StackPanel>
                 <StackPanel Grid.Row="1" VerticalAlignment="Center">
-                    <TextBlock Text="BILIM OLAMIGA" Foreground="#8FA7FF" FontSize="12" FontWeight="Bold" CharacterSpacing="130"/>
+                    <TextBlock Text="BILIM OLAMIGA" Foreground="#8FA7FF" FontSize="12" FontWeight="Bold"/>
                     <TextBlock Text="Har kuni yangi imkoniyat." FontSize="34" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,15,0,0"/>
                     <TextBlock Text="Maktab platformasiga xush kelibsiz. O‘quv jarayoningiz shu yerdan boshlanadi." Foreground="{StaticResource MutedBrush}" FontSize="15" TextWrapping="Wrap" LineHeight="25" Margin="0,13,0,0"/>
                     <Border Background="#192640" CornerRadius="16" Padding="17" Margin="0,30,0,0">
@@ -38,7 +38,7 @@
             <Border Width="390" Padding="32" CornerRadius="22" Background="{StaticResource PanelBrush}"
                     HorizontalAlignment="Center" VerticalAlignment="Center" BorderBrush="#263653" BorderThickness="1">
                 <StackPanel>
-                    <TextBlock Text="O‘QUVCHI KIRISHI" Foreground="#8FA7FF" FontSize="11" FontWeight="Bold" CharacterSpacing="110"/>
+                    <TextBlock Text="O‘QUVCHI KIRISHI" Foreground="#8FA7FF" FontSize="11" FontWeight="Bold"/>
                     <TextBlock Text="Xush kelibsiz!" FontSize="29" FontWeight="SemiBold" Margin="0,12,0,5"/>
                     <TextBlock Text="Davom etish uchun ma’lumotlaringizni kiriting." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" Margin="0,0,0,27"/>
                     <TextBlock Text="Ism" Foreground="#DCE4FF" FontSize="13" Margin="0,0,0,8"/>
