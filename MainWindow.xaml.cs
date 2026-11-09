@@ -9,8 +9,35 @@ public partial class MainWindow : Window
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(8) };
     private bool _submitting;
+    private readonly string _profilePath;
 
-    public MainWindow() => InitializeComponent();
+    public MainWindow()
+    {
+        InitializeComponent();
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SchoolControl");
+        Directory.CreateDirectory(folder);
+        _profilePath = Path.Combine(folder, "student-profile.json");
+
+        // This is a visible setup window. Once a student profile exists, reuse it
+        // rather than asking for the same name on every launch.
+        if (File.Exists(_profilePath))
+        {
+            try
+            {
+                var saved = JsonSerializer.Deserialize<StudentProfile>(File.ReadAllText(_profilePath));
+                if (saved is not null)
+                {
+                    FirstNameBox.Text = saved.FirstName;
+                    LastNameBox.Text = saved.LastName;
+                    Loaded += async (_, _) => await SubmitAsync();
+                }
+            }
+            catch (JsonException)
+            {
+                StatusText.Text = "Saqlangan profilni o‘qib bo‘lmadi. Ism-familiyani qayta kiriting.";
+            }
+        }
+    }
 
     private async void LastNameBox_LostFocus(object sender, RoutedEventArgs e) => await SubmitAsync();
     private async void LastNameBox_KeyDown(object sender, KeyEventArgs e)
@@ -31,13 +58,19 @@ public partial class MainWindow : Window
         }
 
         _submitting = true;
-        StatusText.Text = "Ma’lumot saqlanmoqda…";
+        StatusText.Text = "Maktab tizimiga ulanish…";
         try
         {
-            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SchoolControl");
-            Directory.CreateDirectory(folder);
-            var profile = new StudentProfile(firstName, lastName, Environment.MachineName, DateTimeOffset.Now);
-            await File.WriteAllTextAsync(Path.Combine(folder, "student-profile.json"),
+            var folder = Path.GetDirectoryName(_profilePath)!;
+            var existing = File.Exists(_profilePath)
+                ? JsonSerializer.Deserialize<StudentProfile>(await File.ReadAllTextAsync(_profilePath))
+                : null;
+            var deviceId = existing?.DeviceId;
+            if (string.IsNullOrWhiteSpace(deviceId))
+                deviceId = Guid.NewGuid().ToString("N");
+
+            var profile = new StudentProfile(firstName, lastName, Environment.MachineName, deviceId, DateTimeOffset.UtcNow);
+            await File.WriteAllTextAsync(_profilePath,
                 JsonSerializer.Serialize(profile, new JsonSerializerOptions { WriteIndented = true }));
 
             var apiBase = Environment.GetEnvironmentVariable("SCHOOLCONTROL_API_URL")?.TrimEnd('/');
@@ -46,25 +79,25 @@ public partial class MainWindow : Window
 
             if (string.IsNullOrWhiteSpace(apiBase))
             {
-                StatusText.Text = "Profil qurilmada saqlandi. Maktab server manzilini IT mutaxassisi sozlashi kerak.";
+                StatusText.Text = "Profil saqlandi. Server manzilini IT mutaxassisi sozlashi kerak.";
                 return;
             }
 
             try
             {
                 using var response = await Http.PostAsJsonAsync($"{apiBase}/api/students/register",
-                    new { firstName, lastName, deviceName = Environment.MachineName });
+                    new { firstName, lastName, deviceId, deviceName = Environment.MachineName });
                 StatusText.Text = response.IsSuccessStatusCode
-                    ? "Ma’lumot saqlandi va maktab serveriga yuborildi."
-                    : $"Ma’lumot qurilmada saqlandi. Server javobi: {(int)response.StatusCode}";
+                    ? "Maktab tizimiga ulandingiz. Bu oynani yopishingiz mumkin."
+                    : $"Profil saqlandi. Server javobi: {(int)response.StatusCode}";
             }
             catch (HttpRequestException)
             {
-                StatusText.Text = "Ma’lumot qurilmada saqlandi. Maktab serveriga ulanib bo‘lmadi.";
+                StatusText.Text = "Profil saqlandi. Maktab serveriga ulanib bo‘lmadi.";
             }
             catch (TaskCanceledException)
             {
-                StatusText.Text = "Ma’lumot qurilmada saqlandi. Server javob bermadi.";
+                StatusText.Text = "Profil saqlandi. Server javob bermadi.";
             }
         }
         catch (Exception)
@@ -85,4 +118,9 @@ public partial class MainWindow : Window
     }
 }
 
-public sealed record StudentProfile(string FirstName, string LastName, string DeviceName, DateTimeOffset SavedAt);
+public sealed record StudentProfile(
+    string FirstName,
+    string LastName,
+    string DeviceName,
+    string DeviceId,
+    DateTimeOffset SavedAt);
