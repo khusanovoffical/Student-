@@ -6,7 +6,7 @@ Windows 10/11 student client for SchoolControl.
 - Simple student registration with first name and surname.
 - Saves a local profile under `%LOCALAPPDATA%\SchoolControl\student-profile.json`.
 - Sends registration to the configured school server.
-- Includes the Windows computer name in the registration request.
+- Stores the Windows computer name in the local profile for device setup support.
 - Shows clear status when the school server is not configured or unavailable.
 
 ## Server configuration
