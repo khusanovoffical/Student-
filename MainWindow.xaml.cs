@@ -19,6 +19,7 @@ public partial class MainWindow : Window
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(15) };
     private HubConnection? _hubConnection;
     private LockWindow? _lockWindow;
+    private CreativeRegistrationWindow? _creativeWindow;
     private readonly PolicyEnforcer _policyEnforcer = new();
     private readonly DispatcherTimer _screenStreamTimer = new();
     private readonly DispatcherTimer _heartbeatTimer = new();
@@ -38,11 +39,9 @@ public partial class MainWindow : Window
 
         _deviceId = DeviceIdProvider.GetDeviceId();
 
-        // Screen streaming timer (har 1.5 soniyada o'qituvchiga thumbnail yuboradi)
         _screenStreamTimer.Interval = TimeSpan.FromMilliseconds(1500);
         _screenStreamTimer.Tick += async (_, _) => await SendScreenThumbnailAsync();
 
-        // Heartbeat timer (har 15 soniyada)
         _heartbeatTimer.Interval = TimeSpan.FromSeconds(15);
         _heartbeatTimer.Tick += async (_, _) =>
         {
@@ -59,9 +58,9 @@ public partial class MainWindow : Window
 
     private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        // 1. Tarmoqda avtomatik serverni qidirish
+        // 1. Tarmoqda serverni avtomatik qidirish
         DiscoveryStatusText.Text = "Tarmoqda server qidirilmoqda...";
-        var discovered = await DiscoveryClient.DiscoverServerAsync(TimeSpan.FromSeconds(2.5));
+        var discovered = await DiscoveryClient.DiscoverServerAsync(TimeSpan.FromSeconds(2));
         if (!string.IsNullOrEmpty(discovered))
         {
             _serverUrl = discovered;
@@ -71,7 +70,6 @@ public partial class MainWindow : Window
         }
         else
         {
-            // Muhit o'zgaruvchisidan yoki saqlangan fayldan o'qish
             var envUrl = Environment.GetEnvironmentVariable("SCHOOLCONTROL_API_URL");
             if (!string.IsNullOrWhiteSpace(envUrl))
             {
@@ -79,78 +77,65 @@ public partial class MainWindow : Window
                 ServerUrlBox.Text = _serverUrl;
                 DiscoveryStatusText.Text = $"Server: {_serverUrl}";
             }
-            else
-            {
-                DiscoveryStatusText.Text = "Lokal server qidirilmoqda (standart localhost:5123)";
-            }
         }
+
+        // 2. Dastlabki doimiy qurilma ulanishi
+        await InitializeSignalRAsync();
+
+        // 3. NON-NEGOTIABLE TALAB: HAR DOIM YANGI WINDOWS SESSIYASIDA CREATIVE OYNASI OCHILADI
+        ShowCreativeRegistration();
     }
 
-    private async void SubmitButton_Click(object sender, RoutedEventArgs e)
+    private void ShowCreativeRegistration()
     {
-        var firstName = FirstNameBox.Text.Trim();
-        var lastName = LastNameBox.Text.Trim();
-        var serverInput = ServerUrlBox.Text.Trim().TrimEnd('/');
-
-        if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
-        {
-            StatusText.Text = "Iltimos, ism va familiyangizni kiriting.";
+        if (_creativeWindow != null && _creativeWindow.IsLoaded)
             return;
-        }
 
-        if (!string.IsNullOrWhiteSpace(serverInput))
+        _creativeWindow = new CreativeRegistrationWindow(async (firstName, lastName) =>
         {
-            _serverUrl = serverInput;
-        }
+            return await RegisterStudentSessionAsync(firstName, lastName);
+        });
+        _creativeWindow.Show();
+    }
 
-        SubmitButton.IsEnabled = false;
-        StatusText.Text = "Serverga ulanish...";
-
+    private async Task<bool> RegisterStudentSessionAsync(string firstName, string lastName)
+    {
         try
         {
             _currentFirstName = firstName;
             _currentLastName = lastName;
 
-            // 1. API orqali ro'yxatdan o'tish
-            using var regResponse = await Http.PostAsJsonAsync($"{_serverUrl}/api/students/register", new
+            // SignalR orqali sessiyani darhol yangilash
+            if (_hubConnection?.State == HubConnectionState.Connected)
             {
-                firstName,
-                lastName,
-                deviceId = _deviceId,
-                deviceName = Environment.MachineName
-            });
-
-            if (!regResponse.IsSuccessStatusCode)
+                await _hubConnection.SendAsync("UpdateStudentSession", _deviceId, firstName, lastName);
+            }
+            else
             {
-                StatusText.Text = $"Xatolik: Server javobi {(int)regResponse.StatusCode}";
-                SubmitButton.IsEnabled = true;
-                return;
+                // Fallback REST API
+                using var res = await Http.PostAsJsonAsync($"{_serverUrl}/api/students/session", new
+                {
+                    deviceId = _deviceId,
+                    firstName,
+                    lastName
+                });
+                if (!res.IsSuccessStatusCode) return false;
             }
 
-            // 2. SignalR Hub ga ulanish
-            await InitializeSignalRAsync();
-
-            // 3. Ilovalar monitoringini boshlash
-            _policyEnforcer.StartMonitoring(blockedName =>
+            Dispatcher.Invoke(() =>
             {
-                Dispatcher.Invoke(() =>
-                {
-                    MessageBox.Show($"'{blockedName}' ilovasi maktab qoidalari bo‘yicha cheklangan.",
-                        "Maktab nazorati", MessageBoxButton.OK, MessageBoxImage.Information);
-                });
+                LoginGrid.Visibility = Visibility.Collapsed;
+                DashboardGrid.Visibility = Visibility.Visible;
+
+                DashboardStudentName.Text = $"{firstName} {lastName}";
+                DashboardDeviceName.Text = $"{Environment.MachineName} · ID: {_deviceId[..Math.Min(8, _deviceId.Length)]}...";
             });
 
-            // 4. Dashboardga o'tish
-            LoginGrid.Visibility = Visibility.Collapsed;
-            DashboardGrid.Visibility = Visibility.Visible;
-
-            DashboardStudentName.Text = $"{firstName} {lastName}";
-            DashboardDeviceName.Text = $"{Environment.MachineName} · ID: {_deviceId[..Math.Min(8, _deviceId.Length)]}...";
+            return true;
         }
-        catch (Exception ex)
+        catch
         {
-            StatusText.Text = $"Serverga ulanib bo‘lmadi: {ex.Message}";
-            SubmitButton.IsEnabled = true;
+            return false;
         }
     }
 
@@ -183,7 +168,11 @@ public partial class MainWindow : Window
                 ConnectionStatusText.Text = "Serverga ulangan";
                 ConnectionDot.Fill = (SolidColorBrush)FindResource("SuccessBrush");
             });
-            await _hubConnection.SendAsync("RegisterStudent", _deviceId, Environment.MachineName, _currentFirstName, _currentLastName);
+            await _hubConnection.SendAsync("RegisterStudentDevice", _deviceId, Environment.MachineName);
+            if (!string.IsNullOrEmpty(_currentFirstName))
+            {
+                await _hubConnection.SendAsync("UpdateStudentSession", _deviceId, _currentFirstName, _currentLastName);
+            }
         };
 
         _hubConnection.Closed += _ =>
@@ -196,7 +185,7 @@ public partial class MainWindow : Window
             return Task.CompletedTask;
         };
 
-        // BUYRUQLARNI QABUL QILISH
+        // BUYRUQLAR
         _hubConnection.On<string, string>("ReceiveCommand", HandleCommand);
         _hubConnection.On<string, string, string>("ReceiveCommandTargeted", (target, cmd, payload) =>
         {
@@ -204,13 +193,35 @@ public partial class MainWindow : Window
                 HandleCommand(cmd, payload);
         });
 
-        // REMOTE INPUT (sichqoncha/klaviatura)
+        // O'QITUVCHI TASHABBUSI BILAN CREATIVE OYNASINI OCHISH (Change Student Name)
+        _hubConnection.On("OpenCreativeRegistration", () =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                ShowCreativeRegistration();
+            });
+        });
+
+        // O'QITUVCHI TALABADAN FAYL SO'RAGANDA (Receive File)
+        _hubConnection.On("PromptFileSelection", () =>
+        {
+            Dispatcher.Invoke(() =>
+            {
+                var picker = new StudentFilePickerWindow(async filePath =>
+                {
+                    return await UploadFileToTeacherAsync(filePath);
+                });
+                picker.ShowDialog();
+            });
+        });
+
+        // MASOFAVIY KIRITISH (Remote Input)
         _hubConnection.On<string>("ReceiveRemoteInput", json =>
         {
             InputSimulator.ProcessRemoteInput(json);
         });
 
-        // FAYL KELGANDA
+        // FAYL KELGANDA (O'qituvchi yuborgan fayl)
         _hubConnection.On<JsonElement>("FileAvailable", async elem =>
         {
             try
@@ -228,17 +239,21 @@ public partial class MainWindow : Window
             catch { }
         });
 
-        // POLICY YANGILANGANDA
+        // POLICY YANGILANISHI
         _hubConnection.On<string>("PolicyUpdated", json =>
         {
             _policyEnforcer.UpdateBlockedProcesses(json);
         });
 
-        await _hubConnection.StartAsync();
-        await _hubConnection.SendAsync("RegisterStudent", _deviceId, Environment.MachineName, _currentFirstName, _currentLastName);
+        try
+        {
+            await _hubConnection.StartAsync();
+            await _hubConnection.SendAsync("RegisterStudentDevice", _deviceId, Environment.MachineName);
 
-        ConnectionStatusText.Text = "Serverga ulangan";
-        ConnectionDot.Fill = (SolidColorBrush)FindResource("SuccessBrush");
+            ConnectionStatusText.Text = "Serverga ulangan";
+            ConnectionDot.Fill = (SolidColorBrush)FindResource("SuccessBrush");
+        }
+        catch { }
     }
 
     private void HandleCommand(string cmd, string payload)
@@ -284,6 +299,15 @@ public partial class MainWindow : Window
                     _isScreenStreaming = false;
                     ScreenSharingBanner.Visibility = Visibility.Collapsed;
                     _screenStreamTimer.Stop();
+                    break;
+
+                case "OpenCreativeRegistration":
+                    ShowCreativeRegistration();
+                    break;
+
+                case "PromptFileSelection":
+                    var picker = new StudentFilePickerWindow(async path => await UploadFileToTeacherAsync(path));
+                    picker.ShowDialog();
                     break;
 
                 case "Notification":
@@ -338,65 +362,70 @@ public partial class MainWindow : Window
         catch { }
     }
 
+    private async Task<bool> UploadFileToTeacherAsync(string filePath)
+    {
+        try
+        {
+            var fileBytes = await File.ReadAllBytesAsync(filePath);
+            using var content = new MultipartFormDataContent();
+            var fileContent = new ByteArrayContent(fileBytes);
+            content.Add(fileContent, "file", Path.GetFileName(filePath));
+
+            var sender = string.IsNullOrWhiteSpace(_currentFirstName) ? "Talaba" : $"{_currentFirstName} {_currentLastName}";
+            var url = $"{_serverUrl}/api/files/upload?targetDeviceId=TEACHER&senderType=Student&senderName={Uri.EscapeDataString(sender)}";
+            var response = await Http.PostAsync(url, content);
+            return response.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private async void SubmitButton_Click(object sender, RoutedEventArgs e)
+    {
+        var firstName = FirstNameBox.Text.Trim();
+        var lastName = LastNameBox.Text.Trim();
+        var serverInput = ServerUrlBox.Text.Trim().TrimEnd('/');
+
+        if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName))
+        {
+            StatusText.Text = "Iltimos, ism va familiyangizni kiriting.";
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(serverInput))
+            _serverUrl = serverInput;
+
+        SubmitButton.IsEnabled = false;
+        StatusText.Text = "Serverga ulanish...";
+
+        var ok = await RegisterStudentSessionAsync(firstName, lastName);
+        if (!ok)
+        {
+            StatusText.Text = "Ulanib bo‘lmadi. Server manzilini tekshiring.";
+            SubmitButton.IsEnabled = true;
+        }
+    }
+
     private async void UploadFile_Click(object sender, RoutedEventArgs e)
     {
-        var dlg = new OpenFileDialog
-        {
-            Title = "O‘qituvchiga topshiriq yuborish",
-            Filter = "Barcha fayllar (*.*)|*.*"
-        };
-
-        if (dlg.ShowDialog() == true)
-        {
-            try
-            {
-                var fileBytes = await File.ReadAllBytesAsync(dlg.FileName);
-                using var content = new MultipartFormDataContent();
-                var fileContent = new ByteArrayContent(fileBytes);
-                content.Add(fileContent, "file", Path.GetFileName(dlg.FileName));
-
-                var url = $"{_serverUrl}/api/files/upload?targetDeviceId=TEACHER&senderType=Student&senderName={Uri.EscapeDataString(_currentFirstName + " " + _currentLastName)}";
-                var response = await Http.PostAsync(url, content);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    MessageBox.Show("Fayl muvaffaqiyatli yuborildi!", "Muvaffaqiyat", MessageBoxButton.OK, MessageBoxImage.Information);
-                }
-                else
-                {
-                    MessageBox.Show("Faylni yuborishda xatolik yuz berdi.", "Xatolik", MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"Fayl yuborilmadi: {ex.Message}", "Xatolik", MessageBoxButton.OK, MessageBoxImage.Error);
-            }
-        }
+        var picker = new StudentFilePickerWindow(async path => await UploadFileToTeacherAsync(path));
+        picker.ShowDialog();
     }
 
     private void OpenFile_Click(object sender, RoutedEventArgs e)
     {
         if (sender is Button btn && btn.Tag is string path && File.Exists(path))
         {
-            try
-            {
-                Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
-            }
-            catch { }
+            try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); } catch { }
         }
     }
 
     private void Logout_Click(object sender, RoutedEventArgs e)
     {
         _screenStreamTimer.Stop();
-        _policyEnforcer.StopMonitoring();
-        _hubConnection?.DisposeAsync();
-        _hubConnection = null;
-
-        DashboardGrid.Visibility = Visibility.Collapsed;
-        LoginGrid.Visibility = Visibility.Visible;
-        SubmitButton.IsEnabled = true;
-        StatusText.Text = "";
+        ShowCreativeRegistration();
     }
 
     private void MainWindow_Closing(object? sender, System.ComponentModel.CancelEventArgs e)
@@ -406,11 +435,4 @@ public partial class MainWindow : Window
         _policyEnforcer.StopMonitoring();
         _lockWindow?.UnlockAndClose();
     }
-}
-
-public sealed class ReceivedFileItem
-{
-    public string FileName { get; set; } = "";
-    public string FilePath { get; set; } = "";
-    public string Info { get; set; } = "";
 }

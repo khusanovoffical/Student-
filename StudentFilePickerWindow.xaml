@@ -1,0 +1,51 @@
+<Window x:Class="Student.StudentFilePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="O‘qituvchiga fayl yuborish"
+        Height="420" Width="520"
+        WindowStartupLocation="CenterScreen"
+        Topmost="True" ResizeMode="NoResize"
+        Background="#0B1325" Foreground="#F4F6FF">
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Sarlavha -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,16">
+            <TextBlock Text="O‘QITUVCHI FAYL SO‘RADI" Foreground="#38BDF8" FontSize="11" FontWeight="Bold" LetterSpacing="1"/>
+            <TextBlock Text="Topshiriq yoki faylni yuboring" FontSize="20" FontWeight="Bold" Margin="0,4,0,2"/>
+            <TextBlock Text="Faylni ushbu maydonga tashlang (Drag &amp; Drop) yoki faylni tanlang." Foreground="#94A3B8" FontSize="12"/>
+        </StackPanel>
+
+        <!-- Drag & Drop maydoni -->
+        <Border Grid.Row="1" x:Name="DropAreaBorder"
+                Background="#030712" BorderBrush="#334155" BorderThickness="2"
+                CornerRadius="16" AllowDrop="True"
+                DragEnter="DropArea_DragEnter" DragLeave="DropArea_DragLeave" Drop="DropArea_Drop">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="📁" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,10"/>
+                <TextBlock x:Name="SelectedFileNameText" Text="Faylni bu yerga sudrab olib keling"
+                           FontSize="14" FontWeight="SemiBold" Foreground="#E2E8F0" HorizontalAlignment="Center"/>
+                <TextBlock x:Name="SelectedFileSizeText" Text="yoki pastdagi tugma orqali tanlang"
+                           FontSize="11" Foreground="#64748B" HorizontalAlignment="Center" Margin="0,4,0,14"/>
+
+                <Button Content="Faylni kompyuterdan tanlash" Padding="14,8"
+                        Background="#1E293B" Foreground="#93C5FD" BorderBrush="#3B82F6"
+                        Cursor="Hand" Click="BrowseFile_Click"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Pastki amallar -->
+        <DockPanel Grid.Row="2" Margin="0,18,0,0">
+            <ProgressBar x:Name="UploadProgressBar" Height="6" Visibility="Collapsed" DockPanel.Dock="Top" Margin="0,0,0,12"/>
+            <Button Content="Bekor qilish" Padding="14,10" Background="Transparent" Foreground="#EF4444" BorderBrush="#7F1D1D" BorderThickness="1"
+                    Cursor="Hand" Click="Cancel_Click"/>
+            <Button x:Name="SendConfirmButton" Content="O‘qituvchiga yuborish" Padding="18,10" DockPanel.Dock="Right"
+                    Background="#2563EB" Foreground="White" BorderThickness="0" FontWeight="Bold"
+                    IsEnabled="False" Cursor="Hand" Click="SendConfirm_Click"/>
+        </DockPanel>
+    </Grid>
+</Window>
