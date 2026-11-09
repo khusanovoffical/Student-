@@ -1,21 +1,35 @@
-name: Build Student Windows app
+name: Build and Package Student Client
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   pull_request:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: windows-latest
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: Setup .NET 8
+
+      - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Build Student
-        run: dotnet build Student.csproj --configuration Release
+
+      - name: Restore Dependencies
+        run: dotnet restore Student.csproj
+
+      - name: Build Solution
+        run: dotnet build Student.csproj --configuration Release --no-restore
+
+      - name: Publish Self-Contained Executable
+        run: dotnet publish Student.csproj --configuration Release -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish
+
+      - name: Upload Student Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Student-Client-Win-x64
+          path: ./publish/*
