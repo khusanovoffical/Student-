@@ -7,7 +7,7 @@
         <Border Width="460" Padding="34" CornerRadius="22" Background="{StaticResource PanelBrush}"
                 HorizontalAlignment="Center" VerticalAlignment="Center">
             <StackPanel>
-                <TextBlock Text="SCHOOL CONTROL" Foreground="#8FA7FF" FontSize="12" FontWeight="Bold" CharacterSpacing="180" HorizontalAlignment="Center"/>
+                <TextBlock Text="SCHOOL CONTROL" Foreground="#8FA7FF" FontSize="12" FontWeight="Bold" HorizontalAlignment="Center"/>
                 <TextBlock Text="Xush kelibsiz!" FontSize="30" FontWeight="SemiBold" HorizontalAlignment="Center" Margin="0,16,0,4"/>
                 <TextBlock Text="Davom etish uchun ism va familiyangizni kiriting." Foreground="{StaticResource MutedBrush}" TextWrapping="Wrap" TextAlignment="Center" Margin="0,0,0,28"/>
                 <TextBlock Text="Ism" Foreground="#DCE4FF" Margin="0,0,0,7"/>
